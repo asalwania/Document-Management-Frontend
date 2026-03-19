@@ -94,12 +94,12 @@ describe('listDocuments', () => {
 describe('updateDocument', () => {
   it('patches /documents/:reference/ and returns updated document', async () => {
     const updated = { ...mockDoc, description: 'Updated' };
-    vi.mocked(axiosClient.patch).mockResolvedValue({ data: updated });
+    vi.mocked(axiosClient.put).mockResolvedValue({ data: updated });
 
     const payload = { description: 'Updated', line_item_limit: 10 };
     const result = await updateDocument('INV-001', payload);
 
-    expect(axiosClient.patch).toHaveBeenCalledWith('/documents/INV-001/', payload);
+    expect(axiosClient.put).toHaveBeenCalledWith('/documents/INV-001/', payload);
     expect(result.description).toBe('Updated');
   });
 });
