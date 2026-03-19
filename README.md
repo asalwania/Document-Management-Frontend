@@ -53,6 +53,96 @@ src/
 └── main.tsx              # Entry point
 ```
 
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        React Application                        │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                     DocumentsPage                        │   │
+│  │              (orchestrator — wires hooks to UI)          │   │
+│  └───────┬─────────────────────────┬────────────────────────┘   │
+│          │                         │                            │
+│    ┌─────▼────────────┐    ┌────────▼──────────────────────┐    │
+│    │  useDocuments    │    │        UI Components          │    │
+│    │  ┌─────────────┐ │    │  ┌────────────┐ ┌──────────┐  │    │
+│    │  │ documents[] │ │    │  │DocumentList│ │ Dialogs  │  │    │
+│    │  │ loading     │ │◄──▶│  │  ListItem  │ │ Create   │  │    │
+│    │  │ error       │ │    │  │  Filters   │ │ Update   │  │    │
+│    │  │ filters     │ │    │  │            │ │ LineItem │  │    │
+│    │  │ pagination  │ │    │  │            │ │ Delete   │  │    │
+│    │  ├─────────────┤ │    │  └────────────┘ └──────────┘  │    │
+│    │  │ CRUD ops    │ │    │  ┌────────────┐ ┌──────────┐  │    │
+│    │  │ addLines()  │ │    │  │ Pagination │ │ErrorAlert│  │    │
+│    │  │ removeLns() │ │    │  │ Component  │ │Snackbar  │  │    │
+│    │  └─────────────┘ │    │  └────────────┘ └──────────┘  │    │
+│    │  ┌─────────────┐ │    └───────────────────────────────┘    │
+│    │  │usePagination│ │                                         │
+│    │  └─────────────┘ │                                         │
+│    └────────┬─────────┘                                         │
+│             │                                                   │
+│    ┌────────▼────────┐    ┌──────────────────────────────────┐  │
+│    │  documentApi.ts │    │   validation.ts                  │  │
+│    │  (typed Axios)  │    │   (mirrors backend domain rules) │  │
+│    └────────┬────────┘    └──────────────────────────────────┘  │
+│             │                                                   │
+│    ┌────────▼────────┐                                          │
+│    │  axiosClient.ts │                                          │
+│    │  (interceptors) │                                          │
+│    └────────┬────────┘                                          │
+└─────────────┼───────────────────────────────────────────────────┘
+              │ HTTP (VITE_API_BASE_URL)
+              ▼
+┌──────────────────────────┐
+│   Django REST API        │
+│   /api/documents/...     │
+└──────────────────────────┘
+```
+
+### Data Flow
+
+```
+User action (click, type)
+  │
+  ▼
+Component calls hook method (e.g. createDocument)
+  │
+  ▼
+Hook calls documentApi function (typed request)
+  │
+  ▼
+Axios sends HTTP request → Django backend
+  │
+  ▼
+Response returns → hook updates state (documents[], loading, error)
+  │
+  ▼
+React re-renders components with new state
+  │
+  ▼
+Snackbar shows success/error notification
+```
+
+### Responsive Rendering Strategy
+
+```
+useMediaQuery('(min-width: 900px)')
+  │
+  ├── Desktop (≥ 900px)
+  │   └── MUI Table with columns:
+  │       Reference │ Description │ Type │ Items │ Limit │ Created │ Actions
+  │
+  └── Mobile (< 900px)
+      └── MUI Card grid:
+          ┌─────────────────────┐
+          │ INV-001    invoice  │
+          │ Invoice for order   │
+          │ Items: 5 / 10      │
+          │ [Edit] [Del] [+/-] │
+          └─────────────────────┘
+```
+
 ## Architecture Decisions
 
 **No global state library** — `useDocuments` custom hook owns all document state (data, loading, error, filters, pagination) and exposes mutation methods that auto-refresh the list after writes. This avoids Redux/Context boilerplate for a single-resource app while keeping state logic testable in isolation.
@@ -62,6 +152,18 @@ src/
 **Validation parity** — Client-side validation in `utils/validation.ts` mirrors the backend domain rules exactly (e.g., description max 30 chars, document type must be `invoice` or `receipt`). This gives instant feedback while the server remains the source of truth.
 
 **Typed API layer** — Every request and response is typed through `documentApi.ts`. The Axios error interceptor normalizes server errors into a consistent `Error` shape before they reach components.
+
+## Assumptions & Decisions
+
+The frontend requirements left room for interpretation. Here are the assumptions made:
+
+- **Single-page app with dialogs**: The requirements show CRUD operations as separate sections, but a single page with modal dialogs provides a better UX — the user never loses context of the document list. React Router is included but currently only serves the single documents page (ready for future routes).
+- **Server-side pagination**: The backend returns paginated responses. The frontend delegates all pagination, filtering, and search to the server rather than loading all documents and filtering client-side. This scales to large datasets.
+- **Debounced search (300ms)**: Typing in the search field does not fire an API call on every keystroke. A 300ms debounce strikes a balance between responsiveness and avoiding excessive requests.
+- **Page size options (5, 10, 20)**: These were chosen as sensible defaults. The backend accepts any `page_size` value, so the frontend could easily add more options.
+- **Force delete UX**: When deleting a document with line items, a confirmation dialog appears with a checkbox the user must explicitly tick. This prevents accidental data loss and mirrors the backend's `force_delete` requirement.
+- **No authentication**: The backend does not implement auth, so the frontend does not handle login/tokens. Adding auth would involve an Axios request interceptor for JWT/session tokens.
+- **Vitest over Jest**: The starter repo uses Vite, so Vitest was chosen for native Vite integration, faster execution, and ESM compatibility. The API is Jest-compatible (`describe`, `it`, `expect`).
 
 ## Getting Started
 
