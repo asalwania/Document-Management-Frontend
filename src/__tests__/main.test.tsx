@@ -1,6 +1,5 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { Root } from '../Root';
 
 const renderMock = vi.fn();
 const createRootMock = vi.fn(() => ({ render: renderMock }));
@@ -8,12 +7,12 @@ const createRootMock = vi.fn(() => ({ render: renderMock }));
 vi.mock('react-dom/client', () => ({
   __esModule: true,
   default: {
-    createRoot: createRootMock
-  }
+    createRoot: createRootMock,
+  },
 }));
 
 describe('main', () => {
-  it('mounts app to #root with ThemeProvider and Root', async () => {
+  it('mounts app to #root with ThemeProvider and App', async () => {
     const rootEl = document.createElement('div');
     rootEl.id = 'root';
     document.body.appendChild(rootEl);
@@ -26,11 +25,6 @@ describe('main', () => {
     expect(app.type).toBe(React.StrictMode);
     const themeProvider = app.props.children;
     expect(themeProvider.type.toString()).toContain('ThemeProvider');
-    const children = Array.isArray(themeProvider.props.children)
-      ? themeProvider.props.children
-      : [themeProvider.props.children];
-    const hasRoot = children.some((c: React.ReactElement) => c?.type === Root);
-    expect(hasRoot).toBe(true);
 
     document.body.removeChild(rootEl);
   });

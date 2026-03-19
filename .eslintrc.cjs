@@ -25,7 +25,10 @@ module.exports = {
   overrides: [
     {
       files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
-      rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true }] }
+      rules: {
+        'import/no-extraneous-dependencies': ['error', { devDependencies: true }],
+        'react/jsx-props-no-spreading': 'off',
+      }
     },
     {
       files: ['vite.config.ts', 'vitest.config.ts'],
