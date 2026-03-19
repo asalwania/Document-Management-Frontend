@@ -1,6 +1,6 @@
 import type React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '@mui/material/styles';
 import { theme } from '../../theme';
@@ -15,6 +15,11 @@ const defaultProps = {
   onSave: vi.fn().mockResolvedValue(undefined),
   onCancel: vi.fn(),
 };
+
+function fillField(label: RegExp, value: string) {
+  const input = screen.getByLabelText(label);
+  fireEvent.change(input, { target: { value } });
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -43,12 +48,10 @@ describe('CreateDocumentDialog', () => {
     expect(screen.getByText('0/30')).toBeInTheDocument();
   });
 
-  it('updates character counter when typing', async () => {
-    const user = userEvent.setup();
+  it('updates character counter when typing', () => {
     renderWithTheme(<CreateDocumentDialog {...defaultProps} />);
 
-    const descInput = screen.getByLabelText(/Description/i);
-    await user.type(descInput, 'Hello');
+    fillField(/Description/i, 'Hello');
 
     expect(screen.getByText('5/30')).toBeInTheDocument();
   });
@@ -57,16 +60,14 @@ describe('CreateDocumentDialog', () => {
     const user = userEvent.setup();
     renderWithTheme(<CreateDocumentDialog {...defaultProps} />);
 
-    const refInput = screen.getByLabelText(/Reference/i);
-    await user.type(refInput, 'REF-001');
+    fillField(/Reference/i, 'REF-001');
+    fillField(/Description/i, 'a'.repeat(31));
 
-    const descInput = screen.getByLabelText(/Description/i);
-    await user.type(descInput, 'a'.repeat(31));
+    await user.click(screen.getByRole('button', { name: 'Create' }));
 
-    const createBtn = screen.getByRole('button', { name: 'Create' });
-    await user.click(createBtn);
-
-    expect(screen.getByText('Description must be 30 characters or less')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Description must be 30 characters or less')).toBeInTheDocument();
+    });
     expect(defaultProps.onSave).not.toHaveBeenCalled();
   });
 
@@ -74,31 +75,32 @@ describe('CreateDocumentDialog', () => {
     const user = userEvent.setup();
     renderWithTheme(<CreateDocumentDialog {...defaultProps} />);
 
-    const createBtn = screen.getByRole('button', { name: 'Create' });
-    await user.click(createBtn);
+    await user.click(screen.getByRole('button', { name: 'Create' }));
 
-    expect(screen.getByText('Reference is required')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Reference is required')).toBeInTheDocument();
+    });
   });
 
   it('shows validation error when description is empty', async () => {
     const user = userEvent.setup();
     renderWithTheme(<CreateDocumentDialog {...defaultProps} />);
 
-    const createBtn = screen.getByRole('button', { name: 'Create' });
-    await user.click(createBtn);
+    await user.click(screen.getByRole('button', { name: 'Create' }));
 
-    expect(screen.getByText('Description is required')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Description is required')).toBeInTheDocument();
+    });
   });
 
   it('calls onSave with form data on valid submit', async () => {
     const user = userEvent.setup();
     renderWithTheme(<CreateDocumentDialog {...defaultProps} />);
 
-    await user.type(screen.getByLabelText(/Reference/i), 'INV-100');
-    await user.type(screen.getByLabelText(/Description/i), 'New invoice');
+    fillField(/Reference/i, 'INV-100');
+    fillField(/Description/i, 'New invoice');
 
-    const createBtn = screen.getByRole('button', { name: 'Create' });
-    await user.click(createBtn);
+    await user.click(screen.getByRole('button', { name: 'Create' }));
 
     await waitFor(() => {
       expect(defaultProps.onSave).toHaveBeenCalledWith({
@@ -115,8 +117,8 @@ describe('CreateDocumentDialog', () => {
     const user = userEvent.setup();
     renderWithTheme(<CreateDocumentDialog {...defaultProps} />);
 
-    await user.type(screen.getByLabelText(/Reference/i), 'INV-DUP');
-    await user.type(screen.getByLabelText(/Description/i), 'Duplicate test');
+    fillField(/Reference/i, 'INV-DUP');
+    fillField(/Description/i, 'Duplicate test');
 
     await user.click(screen.getByRole('button', { name: 'Create' }));
 

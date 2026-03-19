@@ -9,13 +9,14 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
-        changeOrigin: true
-      }
-    }
+        changeOrigin: true,
+      },
+    },
   },
   test: {
     globals: true,
     environment: 'jsdom',
+    testTimeout: 10000,
     setupFiles: './src/__tests__/setup.ts',
     coverage: {
       provider: 'v8',
@@ -25,14 +26,14 @@ export default defineConfig({
         '**/__tests__/**',
         '**/*.test.{ts,tsx}',
         '**/.eslintrc.cjs',
-        '**/vite.config.ts'
+        '**/vite.config.ts',
       ],
       thresholds: {
         lines: 90,
         branches: 90,
         functions: 90,
-        statements: 90
-      }
-    }
-  }
+        statements: 90,
+      },
+    },
+  },
 });
