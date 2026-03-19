@@ -1,6 +1,6 @@
 # Document Management Frontend
 
-A production-grade React SPA for managing invoices and receipts — built with **TypeScript**, **Material UI**, and a clean component architecture. Pairs with a [Django DDD backend](../document_storage/) to form a full-stack document management system.
+A production-grade React SPA for managing invoices and receipts — built with **TypeScript**, **Material UI**, and a clean component architecture. Pairs with a [Django DDD backend](https://github.com/asalwania/document-storage) to form a full-stack document management system.
 
 ## Tech Stack
 
