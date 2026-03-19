@@ -36,7 +36,7 @@ export async function updateDocument(
   reference: string,
   payload: UpdateDocumentPayload,
 ): Promise<Document> {
-  const response = await axiosClient.patch<Document>(`/documents/${reference}/`, payload);
+  const response = await axiosClient.put<Document>(`/documents/${reference}/`, payload);
   return response.data;
 }
 
